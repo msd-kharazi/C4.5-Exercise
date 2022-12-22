@@ -8,8 +8,7 @@ namespace C4._5_Exercise.CSharp
 { 
     public enum DataType
     {
-        Categorial = 1,
-        Numerical = 2,
-        Excluded=3
+        Include = 1,
+        Exclude=2
     }
 }

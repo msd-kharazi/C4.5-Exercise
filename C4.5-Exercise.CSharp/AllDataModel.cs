@@ -9,6 +9,7 @@ namespace C4._5_Exercise.CSharp
     public class AllDataModel
     {
         public InfoModel MetaData { get; set; }
+        public double InformationGain { get; set; }
         public List<string> Data { get; set; }
 
     } 

@@ -16,6 +16,7 @@ namespace C4._5_Exercise.CSharp
         private List<TypeComboModel> comboboxDataSource;
         private List<InfoModel> infoModel;
         private List<AllDataModel> allData;
+        private List<string> targetAcceptableValues = new List<string>{"true","false"};
         public frmMain()
         {
             InitializeComponent();
@@ -26,18 +27,13 @@ namespace C4._5_Exercise.CSharp
             {
                 new TypeComboModel
                 {
-                    Title = "Categorial",
-                    Value = DataType.Categorial
-                },
-                new TypeComboModel
-                {
-                    Title = "Numerical",
-                    Value = DataType.Numerical
-                },
+                    Title = "Include",
+                    Value = DataType.Include
+                }, 
                 new TypeComboModel
                 {
                     Title = "Exclude",
-                    Value = DataType.Excluded
+                    Value = DataType.Exclude
                 }
             };
             var typeColumn = dgInfoModel.Columns[1] as DataGridViewComboBoxColumn;
@@ -79,27 +75,9 @@ namespace C4._5_Exercise.CSharp
                 {
                     ColumnNumber = columnIterator,
                     ColumnTitle = workSheet.Cells[1, columnIterator].Value?.ToString(),
+                    DataTypeValue = DataType.Include,
                     IsTarget = false
-                };
-
-                var row2Value = workSheet.Cells[2, columnIterator].Value?.ToString();
-                var row3Value = workSheet.Cells[3, columnIterator].Value?.ToString();
-
-                if (string.IsNullOrEmpty(row2Value) && string.IsNullOrEmpty(row3Value))
-                {
-                    MessageBox.Show($"2nd and 3rd row of col {columnIterator} are both null!");
-                    return;
-                }
-
-                var value = Convert.ToString(string.IsNullOrEmpty(row2Value) ? row3Value : row2Value).Trim();
-                if (double.TryParse(value, out _))
-                {
-                    info.DataTypeValue = DataType.Numerical;
-                }
-                else
-                {
-                    info.DataTypeValue = DataType.Categorial;
-                }
+                }; 
 
                 this.infoModel.Add(info);
             }
@@ -112,12 +90,6 @@ namespace C4._5_Exercise.CSharp
             if (infoModel.Count(x => x.IsTarget) != 1)
             {
                 MessageBox.Show("Please select 1 & only 1 target.");
-                return;
-            }
-
-            if (infoModel.First(x => x.IsTarget).DataTypeValue != DataType.Categorial)
-            {
-                MessageBox.Show("Target column must be Boolean (True or False)");
                 return;
             }
 
@@ -136,45 +108,139 @@ namespace C4._5_Exercise.CSharp
             var noOfRows = workSheet.Dimension.End.Row;
 
             allData.Clear();
-            foreach (var info in infoModel.Where(x => x.DataTypeValue != DataType.Excluded))
-            {
-                if (info.DataTypeValue == DataType.Excluded)
-                {
-                    continue;
-                }
-
+            foreach (var info in infoModel.Where(x => x.DataTypeValue != DataType.Exclude))
+            { 
                 var newData = new AllDataModel
                 {
                     MetaData = info,
                     Data = new List<string>()
                 };
 
-                for (var rowIterator = 1; rowIterator <= noOfRows; rowIterator++)
+                for (var rowIterator = 2; rowIterator <= noOfRows; rowIterator++)
                 {
-                    newData.Data.Add(workSheet.Cells[rowIterator, info.ColumnNumber].Value.ToString());
+                    var value = workSheet.Cells[rowIterator, info.ColumnNumber].Value.ToString().Trim().ToLower();
+                    if (info.IsTarget && !targetAcceptableValues.Contains(value))
+                    {
+                        MessageBox.Show($"Target value on row {rowIterator} is not 'true' or 'false'");
+                        return;
+                    }
+
+                    newData.Data.Add(value);
                 }
 
                 allData.Add(newData);
             }
 
+            TreeNode root;
+
+
             if (cmbMethod.SelectedIndex == 0)
             {
-                CreateId3Tree(allData);
+                root = CreateId3Tree(allData);
             }
             else
             {
-                CreateC45Tree(allData);
+                root = CreateC45Tree(allData);
             }
+
+            tvResultTree.TopNode = root;
         }
 
-        private void CreateId3Tree(List<AllDataModel> allDataModels)
-        {
-            throw new NotImplementedException();
+        private TreeNode CreateId3Tree(List<AllDataModel> allDataModels)
+        { 
+            var targetColumn = allDataModels.First(x => x.MetaData.IsTarget);
+            var totalEntropy = CalcEntropy(targetColumn);
+
+            foreach (var column in allDataModels.Where(x=>!x.MetaData.IsTarget))
+            {
+                column.InformationGain = CalcInformationGain(column, targetColumn, totalEntropy);
+            }
+
+            var bestFeature = allDataModels.Where(x => !x.MetaData.IsTarget).MaxBy(x => x.InformationGain);
+
+            var result = new TreeNode($"{bestFeature.MetaData.ColumnTitle} - ({bestFeature.InformationGain})");
+            if (allDataModels.Count > 2)
+            { 
+                var allPossibleValues = bestFeature.Data.Distinct().ToList();
+
+                var remainedColumns =
+                    allDataModels.Where(x => x != bestFeature).ToList();
+
+                foreach (var possibleValue in allPossibleValues)
+                {
+                    var possibleValuesIndexes = bestFeature.Data.Select((item, index) => new KeyValuePair<int, string>(index, item))
+                        .Where(x => string.Equals(possibleValue, x.Value))
+                        .Select(x => x.Key).ToList();
+
+                    var possibleValueAllData = new List<AllDataModel>();
+                      
+                    foreach (var remainedColumn in remainedColumns)
+                    {
+                        var remainedColumnClone = new AllDataModel
+                        {
+                            MetaData = remainedColumn.MetaData,
+                            Data = new List<string>()
+                        };
+                         
+                        foreach (var possibleValueIndex in possibleValuesIndexes)
+                        {
+                            remainedColumnClone.Data.Add(remainedColumn.Data[possibleValueIndex]);
+                        }
+                        possibleValueAllData.Add(remainedColumnClone);
+                    }
+
+                    result.Nodes.Add(CreateId3Tree(possibleValueAllData)); 
+                }
+            }
+
+            return result; 
         }
-        private void CreateC45Tree(List<AllDataModel> allDataModels)
+
+
+        private double CalcEntropy(AllDataModel target)
         {
-            throw new NotImplementedException();
+            double allCount = target.Data.Count;
+            double allPositive = target.Data.Count(x => string.Equals(x, "true"));
+            double allNegative = target.Data.Count(x => string.Equals(x, "false"));
+
+            var positiveDivisionResult = allPositive / allCount;
+            var negativeDivisionResult = allNegative / allCount;
+
+            var entropy = -1 * ((positiveDivisionResult) * Math.Log2(positiveDivisionResult) +
+                                (negativeDivisionResult) * Math.Log2(negativeDivisionResult));
+
+            return entropy;
         }
+
+        private double CalcInformationGain(AllDataModel feature, AllDataModel target, double totalEntropy)
+        {
+            var allPossibleValues = feature.Data.Distinct().ToList();
+            double i = 0;
+
+            foreach (var possibleValue in allPossibleValues)
+            {
+                var possibleValuesIndexes = feature.Data.Select((item, index) => new KeyValuePair<int, string>(index, item))
+                    .Where(x => string.Equals(possibleValue, x.Value))
+                    .Select(x => x.Key).ToList();
+
+                double allCount = possibleValuesIndexes.Count;
+                double allPositive = target.Data.Where((item, index) => possibleValuesIndexes.Contains(index) && string.Equals(item, "true")).Count();
+                double allNegative = target.Data.Where((item, index) => possibleValuesIndexes.Contains(index) && string.Equals(item, "false")).Count();
+                var allPositiveRate = allPositive / allCount;
+                var allNegativeRate = allNegative / allCount;
+
+                i += (allCount / feature.Data.Count) * -1 * ((allPositiveRate * Math.Log2(allPositiveRate)) + (allNegativeRate * Math.Log2(allNegativeRate)));
+            }
+
+            return totalEntropy - i;
+        }
+
+
+        private TreeNode CreateC45Tree(List<AllDataModel> allDataModels)
+        {
+            return new TreeNode();
+        }
+
 
     }
 }
