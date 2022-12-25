@@ -34,12 +34,12 @@
             this.cmbMethod = new System.Windows.Forms.ComboBox();
             this.lblMethod = new System.Windows.Forms.Label();
             this.dgInfoModel = new System.Windows.Forms.DataGridView();
-            this.btnCreateTree = new System.Windows.Forms.Button();
-            this.tvResultTree = new System.Windows.Forms.TreeView();
-            this.lbResultExcpressions = new System.Windows.Forms.ListBox();
             this.clTitle = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.clType = new System.Windows.Forms.DataGridViewComboBoxColumn();
             this.clTarget = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.btnCreateTree = new System.Windows.Forms.Button();
+            this.tvResultTree = new System.Windows.Forms.TreeView();
+            this.lbResultExcpressions = new System.Windows.Forms.ListBox();
             ((System.ComponentModel.ISupportInitialize)(this.dgInfoModel)).BeginInit();
             this.SuspendLayout();
             // 
@@ -101,34 +101,8 @@
             this.dgInfoModel.Location = new System.Drawing.Point(12, 81);
             this.dgInfoModel.Name = "dgInfoModel";
             this.dgInfoModel.RowTemplate.Height = 25;
-            this.dgInfoModel.Size = new System.Drawing.Size(450, 292);
+            this.dgInfoModel.Size = new System.Drawing.Size(582, 292);
             this.dgInfoModel.TabIndex = 4;
-            // 
-            // btnCreateTree
-            // 
-            this.btnCreateTree.Location = new System.Drawing.Point(12, 539);
-            this.btnCreateTree.Name = "btnCreateTree";
-            this.btnCreateTree.Size = new System.Drawing.Size(860, 23);
-            this.btnCreateTree.TabIndex = 5;
-            this.btnCreateTree.Text = "Create Tree";
-            this.btnCreateTree.UseVisualStyleBackColor = true;
-            this.btnCreateTree.Click += new System.EventHandler(this.btnCreateTree_Click);
-            // 
-            // tvResultTree
-            // 
-            this.tvResultTree.Location = new System.Drawing.Point(468, 81);
-            this.tvResultTree.Name = "tvResultTree";
-            this.tvResultTree.Size = new System.Drawing.Size(404, 292);
-            this.tvResultTree.TabIndex = 6;
-            // 
-            // lbResultExcpressions
-            // 
-            this.lbResultExcpressions.FormattingEnabled = true;
-            this.lbResultExcpressions.ItemHeight = 15;
-            this.lbResultExcpressions.Location = new System.Drawing.Point(12, 379);
-            this.lbResultExcpressions.Name = "lbResultExcpressions";
-            this.lbResultExcpressions.Size = new System.Drawing.Size(860, 154);
-            this.lbResultExcpressions.TabIndex = 7;
             // 
             // clTitle
             // 
@@ -151,11 +125,37 @@
             this.clTarget.HeaderText = "Is Target";
             this.clTarget.Name = "clTarget";
             // 
+            // btnCreateTree
+            // 
+            this.btnCreateTree.Location = new System.Drawing.Point(12, 539);
+            this.btnCreateTree.Name = "btnCreateTree";
+            this.btnCreateTree.Size = new System.Drawing.Size(860, 23);
+            this.btnCreateTree.TabIndex = 5;
+            this.btnCreateTree.Text = "Create Tree";
+            this.btnCreateTree.UseVisualStyleBackColor = true;
+            this.btnCreateTree.Click += new System.EventHandler(this.btnCreateTree_Click);
+            // 
+            // tvResultTree
+            // 
+            this.tvResultTree.Location = new System.Drawing.Point(600, 81);
+            this.tvResultTree.Name = "tvResultTree";
+            this.tvResultTree.Size = new System.Drawing.Size(298, 292);
+            this.tvResultTree.TabIndex = 6;
+            // 
+            // lbResultExcpressions
+            // 
+            this.lbResultExcpressions.FormattingEnabled = true;
+            this.lbResultExcpressions.ItemHeight = 15;
+            this.lbResultExcpressions.Location = new System.Drawing.Point(12, 379);
+            this.lbResultExcpressions.Name = "lbResultExcpressions";
+            this.lbResultExcpressions.Size = new System.Drawing.Size(886, 154);
+            this.lbResultExcpressions.TabIndex = 7;
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(884, 569);
+            this.ClientSize = new System.Drawing.Size(910, 569);
             this.Controls.Add(this.lbResultExcpressions);
             this.Controls.Add(this.tvResultTree);
             this.Controls.Add(this.btnCreateTree);

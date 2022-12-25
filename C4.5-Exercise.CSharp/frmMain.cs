@@ -66,7 +66,7 @@ namespace C4._5_Exercise.CSharp
             var currentSheet = package.Workbook.Worksheets;
             var workSheet = currentSheet.First();
 
-            infoModel.Clear();
+            infoModel.Clear(); 
 
             var noOfCol = workSheet.Dimension.End.Column;
             for (var columnIterator = 1; columnIterator <= noOfCol; columnIterator++)
@@ -83,6 +83,7 @@ namespace C4._5_Exercise.CSharp
             }
 
             dgInfoModel.DataSource = infoModel;
+            dgInfoModel.Refresh();
         }
 
         private void btnCreateTree_Click(object sender, EventArgs e)
@@ -101,6 +102,8 @@ namespace C4._5_Exercise.CSharp
             using var package = new ExcelPackage(openFileDialog1.FileName);
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
+            lbResultExcpressions.Items.Clear();
+            tvResultTree.Nodes.Clear();
 
             var currentSheet = package.Workbook.Worksheets;
             var workSheet = currentSheet.First();
@@ -143,8 +146,11 @@ namespace C4._5_Exercise.CSharp
                 root = CreateC45Tree(allData);
             }
 
-            tvResultTree.TopNode = root;
+            TraverseTree(root);
+            lbResultExcpressions.Items.RemoveAt(lbResultExcpressions.Items.Count-1);
+            tvResultTree.Nodes.Add(root);
         }
+
 
         private TreeNode CreateId3Tree(List<AllDataModel> allDataModels)
         { 
@@ -159,6 +165,10 @@ namespace C4._5_Exercise.CSharp
             var bestFeature = allDataModels.Where(x => !x.MetaData.IsTarget).MaxBy(x => x.InformationGain);
 
             var result = new TreeNode($"{bestFeature.MetaData.ColumnTitle} - ({bestFeature.InformationGain})");
+            
+
+            result.Tag = bestFeature.MetaData.ColumnTitle;
+
             if (allDataModels.Count > 2)
             { 
                 var allPossibleValues = bestFeature.Data.Distinct().ToList();
@@ -189,7 +199,28 @@ namespace C4._5_Exercise.CSharp
                         possibleValueAllData.Add(remainedColumnClone);
                     }
 
-                    result.Nodes.Add(CreateId3Tree(possibleValueAllData)); 
+                    var possibleValueTargetColumn = possibleValueAllData.First(x => x.MetaData.IsTarget);
+                    TreeNode childNode;
+
+
+                    if (possibleValueTargetColumn.Data.All(x => x.Trim().ToLower() == "true")
+                        || possibleValueTargetColumn.Data.All(x => x.Trim().ToLower() == "false"))
+                    {
+                        childNode = new TreeNode
+                        {
+                            Text = $"{possibleValue} - {possibleValueTargetColumn.Data.First()}",
+                            Tag = $" = {possibleValue}"
+                        };
+                    }
+                    else
+                    {
+                        childNode = CreateId3Tree(possibleValueAllData);
+                        childNode.Text = $"{possibleValue} - {childNode.Text}";
+                        childNode.Tag = $" = {possibleValue} AND {childNode.Tag}";
+                    }
+
+                     
+                    result.Nodes.Add(childNode); 
                 }
             }
 
@@ -206,8 +237,8 @@ namespace C4._5_Exercise.CSharp
             var positiveDivisionResult = allPositive / allCount;
             var negativeDivisionResult = allNegative / allCount;
 
-            var entropy = -1 * ((positiveDivisionResult) * Math.Log2(positiveDivisionResult) +
-                                (negativeDivisionResult) * Math.Log2(negativeDivisionResult));
+            var entropy = -1 * ((positiveDivisionResult ==0?0:(positiveDivisionResult * Math.Log2(positiveDivisionResult))) +
+                                (negativeDivisionResult == 0?0:(negativeDivisionResult * Math.Log2(negativeDivisionResult))));
 
             return entropy;
         }
@@ -229,7 +260,8 @@ namespace C4._5_Exercise.CSharp
                 var allPositiveRate = allPositive / allCount;
                 var allNegativeRate = allNegative / allCount;
 
-                i += (allCount / feature.Data.Count) * -1 * ((allPositiveRate * Math.Log2(allPositiveRate)) + (allNegativeRate * Math.Log2(allNegativeRate)));
+                var value = (allCount / feature.Data.Count) * -1 * ((allPositiveRate * (allPositiveRate == 0?0:Math.Log2(allPositiveRate))) + (allNegativeRate * (allNegativeRate == 0 ? 0 : Math.Log2(allNegativeRate))));
+                i += value;
             }
 
             return totalEntropy - i;
@@ -238,9 +270,128 @@ namespace C4._5_Exercise.CSharp
 
         private TreeNode CreateC45Tree(List<AllDataModel> allDataModels)
         {
-            return new TreeNode();
+            var targetColumn = allDataModels.First(x => x.MetaData.IsTarget);
+            var totalEntropy = CalcEntropy(targetColumn);
+
+            foreach (var column in allDataModels.Where(x => !x.MetaData.IsTarget))
+            {
+                column.InformationGain = CalcInformationGain(column, targetColumn, totalEntropy);
+                column.SplitInfo = CalcSplitInfo(column);
+                column.GainRatio = column.InformationGain / column.SplitInfo;
+            }
+
+            var bestFeature = allDataModels.Where(x => !x.MetaData.IsTarget).MaxBy(x => x.GainRatio);
+
+            var result = new TreeNode($"{bestFeature.MetaData.ColumnTitle} - ({bestFeature.GainRatio})");
+
+
+            result.Tag = bestFeature.MetaData.ColumnTitle;
+
+            if (allDataModels.Count > 2)
+            {
+                var allPossibleValues = bestFeature.Data.Distinct().ToList();
+
+                var remainedColumns =
+                    allDataModels.Where(x => x != bestFeature).ToList();
+
+                foreach (var possibleValue in allPossibleValues)
+                {
+                    var possibleValuesIndexes = bestFeature.Data.Select((item, index) => new KeyValuePair<int, string>(index, item))
+                        .Where(x => string.Equals(possibleValue, x.Value))
+                        .Select(x => x.Key).ToList();
+
+                    var possibleValueAllData = new List<AllDataModel>();
+
+                    foreach (var remainedColumn in remainedColumns)
+                    {
+                        var remainedColumnClone = new AllDataModel
+                        {
+                            MetaData = remainedColumn.MetaData,
+                            Data = new List<string>()
+                        };
+
+                        foreach (var possibleValueIndex in possibleValuesIndexes)
+                        {
+                            remainedColumnClone.Data.Add(remainedColumn.Data[possibleValueIndex]);
+                        }
+                        possibleValueAllData.Add(remainedColumnClone);
+                    }
+
+                    var possibleValueTargetColumn = possibleValueAllData.First(x => x.MetaData.IsTarget);
+                    TreeNode childNode;
+
+
+                    if (possibleValueTargetColumn.Data.All(x => x.Trim().ToLower() == "true")
+                        || possibleValueTargetColumn.Data.All(x => x.Trim().ToLower() == "false"))
+                    {
+                        childNode = new TreeNode
+                        {
+                            Text = $"{possibleValue} - {possibleValueTargetColumn.Data.First()}",
+                            Tag = $" = {possibleValue}"
+                        };
+                    }
+                    else
+                    {
+                        childNode = CreateC45Tree(possibleValueAllData);
+                        childNode.Text = $"{possibleValue} - {childNode.Text}";
+                        childNode.Tag = $" = {possibleValue} AND {childNode.Tag}";
+                    }
+
+
+                    result.Nodes.Add(childNode);
+                }
+            }
+
+            return result;
         }
 
+        private double CalcSplitInfo(AllDataModel feature)
+        {
+            var allPossibleValues = feature.Data.Distinct().ToList();
+            double i = 0;
+
+            foreach (var possibleValue in allPossibleValues)
+            {
+                var possibleValuesIndexes = feature.Data.Select((item, index) => new KeyValuePair<int, string>(index, item))
+                    .Where(x => string.Equals(possibleValue, x.Value))
+                    .Select(x => x.Key).ToList();
+
+                double allPossibleValueCount = possibleValuesIndexes.Count;
+                double allPossibleValueProbability = allPossibleValueCount/feature.Data.Count;
+
+                var value = -1 * allPossibleValueProbability * (allPossibleValueProbability == 0 ? 0 : Math.Log2(allPossibleValueProbability));
+                i += value;
+            }
+
+            return i;
+        }
+
+
+        private void TraverseTree(TreeNode node)
+        { 
+            if (node.Nodes.Count==0 && node.Text.Contains("true"))
+            {
+                var traverseNode = node;
+
+                string result = null;
+                while (traverseNode.Parent != null)
+                {
+                    result = $"{traverseNode.Tag.ToString()} {result}";
+                    traverseNode = traverseNode.Parent;
+                }
+
+                result = $"{traverseNode.Tag.ToString()} {result}";
+                lbResultExcpressions.Items.Add(result);
+                lbResultExcpressions.Items.Add("OR");
+            }
+            else
+            {
+                foreach (TreeNode childNode in node.Nodes)
+                {
+                    TraverseTree(childNode);
+                }
+            } 
+        }
 
     }
 }
