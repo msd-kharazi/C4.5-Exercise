@@ -4,11 +4,10 @@ import math
 class TreeNode:
     def __init__(self):
         self.__title = '' 
+        self.__informationGain = 0
+        self.__gainRatio = 0
 
-    
-    def __init__(self, title):
-        self.__title=title
-
+      
 
     @property
     def title(self):
@@ -33,6 +32,17 @@ class TreeNode:
 
 
 
+    @property
+    def gainRatio(self):
+        return self.__gainRatio
+
+
+    @gainRatio.setter   
+    def gainRatio(self, value):
+        self.__gainRatio = value
+
+
+
 
     @property
     def children(self):
@@ -40,6 +50,6 @@ class TreeNode:
 
 
     @children.setter
-    def title(self, value):
+    def children(self, value):
         self.__children = value
           
