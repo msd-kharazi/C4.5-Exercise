@@ -22,6 +22,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="TreeC45.py" />
+    <Compile Include="TreeNode.py" />
+    <Compile Include="TreeId3.py" />
     <Compile Include="C45Exercise.py" />
   </ItemGroup>
   <ItemGroup>
